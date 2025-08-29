@@ -29,6 +29,11 @@ function setupEventListeners() {
         if (e.key === 'Enter') sendMessage();
     });
     
+    // New Chat button
+    const newChatButton = document.getElementById('newChatButton');
+    if (newChatButton) {
+        newChatButton.addEventListener('click', handleNewChat);
+    }
     
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
@@ -122,10 +127,27 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        // Build source links HTML
+        const sourceLinks = sources.map(source => {
+            // Handle both object format (with links) and string format (backward compatibility)
+            if (typeof source === 'object' && source.text) {
+                if (source.link) {
+                    // Create clickable link that opens in new tab
+                    return `<a href="${source.link}" target="_blank" rel="noopener noreferrer" class="source-link">${escapeHtml(source.text)}</a>`;
+                } else {
+                    // No link available, just show text
+                    return `<span class="source-text">${escapeHtml(source.text)}</span>`;
+                }
+            } else {
+                // Backward compatibility for string sources
+                return `<span class="source-text">${escapeHtml(String(source))}</span>`;
+            }
+        }).join(', ');
+        
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${sourceLinks}</div>
             </details>
         `;
     }
@@ -150,6 +172,34 @@ async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+}
+
+// Handle New Chat button click
+async function handleNewChat() {
+    // Clear the session on backend if we have a session ID
+    if (currentSessionId) {
+        try {
+            await fetch(`${API_URL}/session/clear`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: currentSessionId
+                })
+            });
+        } catch (error) {
+            console.error('Error clearing session:', error);
+        }
+    }
+    
+    // Create new session locally
+    createNewSession();
+    
+    // Focus on input
+    if (chatInput) {
+        chatInput.focus();
+    }
 }
 
 // Load course statistics

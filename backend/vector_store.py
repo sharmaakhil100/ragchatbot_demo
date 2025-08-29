@@ -108,6 +108,14 @@ class VectorStore:
             )
             
             if results['documents'][0] and results['metadatas'][0]:
+                # Check if the match is good enough (distance threshold)
+                # ChromaDB returns distances where lower is better (0 = perfect match)
+                # Typical good matches are < 1.5, poor matches are > 1.8
+                if results['distances'] and results['distances'][0]:
+                    distance = results['distances'][0][0]
+                    if distance > 1.8:  # Threshold for acceptable match (increased for better partial matching)
+                        return None  # Match is too poor, course likely doesn't exist
+                
                 # Return the title (which is now the ID)
                 return results['metadatas'][0][0]['title']
         except Exception as e:

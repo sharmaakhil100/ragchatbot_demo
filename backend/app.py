@@ -40,16 +40,25 @@ class QueryRequest(BaseModel):
     query: str
     session_id: Optional[str] = None
 
+class SourceLink(BaseModel):
+    """Model for source with optional link"""
+    text: str
+    link: Optional[str] = None
+
 class QueryResponse(BaseModel):
     """Response model for course queries"""
     answer: str
-    sources: List[str]
+    sources: List[SourceLink]
     session_id: str
 
 class CourseStats(BaseModel):
     """Response model for course statistics"""
     total_courses: int
     course_titles: List[str]
+
+class ClearSessionRequest(BaseModel):
+    """Request model for clearing a session"""
+    session_id: str
 
 # API Endpoints
 
@@ -65,9 +74,21 @@ async def query_documents(request: QueryRequest):
         # Process query using RAG system
         answer, sources = rag_system.query(request.query, session_id)
         
+        # Convert sources to SourceLink objects
+        source_links = []
+        for source in sources:
+            if isinstance(source, dict):
+                source_links.append(SourceLink(
+                    text=source.get('text', ''),
+                    link=source.get('link')
+                ))
+            else:
+                # Backward compatibility for string sources
+                source_links.append(SourceLink(text=str(source), link=None))
+        
         return QueryResponse(
             answer=answer,
-            sources=sources,
+            sources=source_links,
             session_id=session_id
         )
     except Exception as e:
@@ -82,6 +103,15 @@ async def get_course_stats():
             total_courses=analytics["total_courses"],
             course_titles=analytics["course_titles"]
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/session/clear")
+async def clear_session(request: ClearSessionRequest):
+    """Clear the conversation history for a session"""
+    try:
+        rag_system.session_manager.clear_session(request.session_id)
+        return {"status": "success", "message": "Session cleared"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
