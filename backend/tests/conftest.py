@@ -5,8 +5,10 @@ import pytest
 import os
 import tempfile
 import json
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch, AsyncMock
 from typing import List, Dict, Any
+from fastapi.testclient import TestClient
+import asyncio
 
 # Add backend to path for imports
 import sys
@@ -203,3 +205,152 @@ def temp_course_file(sample_course_document):
     
     # Cleanup
     os.unlink(temp_path)
+
+
+@pytest.fixture
+def test_app():
+    """Create a test FastAPI app without static file mounting to avoid path issues"""
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.middleware.trustedhost import TrustedHostMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional
+    
+    # Import the Pydantic models from app module
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from app import QueryRequest, QueryResponse, SourceLink, CourseStats, ClearSessionRequest
+    
+    # Create test app
+    app = FastAPI(title="Course Materials RAG System Test", root_path="")
+    
+    # Add middleware
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"]
+    )
+    
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+    
+    # Mock RAG system for testing
+    mock_rag = MagicMock()
+    
+    # API Endpoints (same as in app.py but using mock RAG system)
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        try:
+            session_id = request.session_id or "test-session-id"
+            answer, sources = mock_rag.query(request.query, session_id)
+            
+            source_links = []
+            for source in sources:
+                if isinstance(source, dict):
+                    source_links.append(SourceLink(
+                        text=source.get('text', ''),
+                        link=source.get('link')
+                    ))
+                else:
+                    source_links.append(SourceLink(text=str(source), link=None))
+            
+            return QueryResponse(
+                answer=answer,
+                sources=source_links,
+                session_id=session_id
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        try:
+            analytics = mock_rag.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.post("/api/session/clear")
+    async def clear_session(request: ClearSessionRequest):
+        try:
+            mock_rag.session_manager.clear_session(request.session_id)
+            return {"status": "success", "message": "Session cleared"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # Store the mock RAG system on the app for test access
+    app.state.mock_rag = mock_rag
+    
+    return app
+
+
+@pytest.fixture
+def test_client(test_app):
+    """Create a test client for the FastAPI app"""
+    return TestClient(test_app)
+
+
+@pytest.fixture
+def mock_rag_responses():
+    """Mock responses for RAG system queries"""
+    return {
+        "query_response": (
+            "Python is a versatile programming language known for its simplicity and readability.",
+            [
+                {"text": "Python is a high-level programming language", "link": "https://example.com/python/lesson1"},
+                {"text": "Python supports various data types", "link": "https://example.com/python/lesson2"}
+            ]
+        ),
+        "analytics_response": {
+            "total_courses": 3,
+            "course_titles": [
+                "Introduction to Python Programming",
+                "Machine Learning Fundamentals", 
+                "Advanced Data Science"
+            ]
+        }
+    }
+
+
+@pytest.fixture
+def mock_session_manager():
+    """Create a mock session manager"""
+    manager = MagicMock()
+    manager.create_session.return_value = "test-session-123"
+    manager.clear_session.return_value = None
+    return manager
+
+
+@pytest.fixture
+def api_test_data():
+    """Test data for API endpoint testing"""
+    return {
+        "valid_query": {
+            "query": "What is Python programming?",
+            "session_id": "test-session-123"
+        },
+        "query_without_session": {
+            "query": "Explain machine learning basics"
+        },
+        "invalid_query": {
+            "query": ""
+        },
+        "clear_session_request": {
+            "session_id": "test-session-123"
+        }
+    }
+
+
+@pytest.fixture
+async def async_test_client(test_app):
+    """Create an async test client for testing async endpoints"""
+    from httpx import AsyncClient
+    async with AsyncClient(app=test_app, base_url="http://test") as client:
+        yield client
