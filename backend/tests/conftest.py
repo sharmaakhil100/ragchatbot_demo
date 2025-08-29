@@ -1,23 +1,26 @@
 """
 Shared fixtures and mock data for testing the RAG system
 """
-import pytest
-import os
-import tempfile
+
 import json
-from unittest.mock import Mock, MagicMock, patch
-from typing import List, Dict, Any
+import os
 
 # Add backend to path for imports
 import sys
+import tempfile
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models import Course, Lesson, CourseChunk
-from vector_store import VectorStore, SearchResults
-from search_tools import CourseSearchTool, CourseOutlineTool, ToolManager
 from ai_generator import AIGenerator
 from config import Config
+from models import Course, CourseChunk, Lesson
 from rag_system import RAGSystem
+from search_tools import CourseOutlineTool, CourseSearchTool, ToolManager
+from vector_store import SearchResults, VectorStore
 
 
 @pytest.fixture
@@ -29,28 +32,52 @@ def mock_course_data():
             course_link="https://example.com/python-course",
             instructor="Jane Doe",
             lessons=[
-                Lesson(lesson_number=1, title="Getting Started", lesson_link="https://example.com/python/lesson1"),
-                Lesson(lesson_number=2, title="Variables and Data Types", lesson_link="https://example.com/python/lesson2"),
-                Lesson(lesson_number=3, title="Control Flow", lesson_link="https://example.com/python/lesson3"),
-            ]
+                Lesson(
+                    lesson_number=1,
+                    title="Getting Started",
+                    lesson_link="https://example.com/python/lesson1",
+                ),
+                Lesson(
+                    lesson_number=2,
+                    title="Variables and Data Types",
+                    lesson_link="https://example.com/python/lesson2",
+                ),
+                Lesson(
+                    lesson_number=3,
+                    title="Control Flow",
+                    lesson_link="https://example.com/python/lesson3",
+                ),
+            ],
         ),
         Course(
             title="Machine Learning Fundamentals",
             course_link="https://example.com/ml-course",
             instructor="John Smith",
             lessons=[
-                Lesson(lesson_number=1, title="Introduction to ML", lesson_link="https://example.com/ml/lesson1"),
-                Lesson(lesson_number=2, title="Supervised Learning", lesson_link="https://example.com/ml/lesson2"),
-            ]
+                Lesson(
+                    lesson_number=1,
+                    title="Introduction to ML",
+                    lesson_link="https://example.com/ml/lesson1",
+                ),
+                Lesson(
+                    lesson_number=2,
+                    title="Supervised Learning",
+                    lesson_link="https://example.com/ml/lesson2",
+                ),
+            ],
         ),
         Course(
             title="Advanced Data Science",
             course_link="https://example.com/ds-course",
             instructor="Emily Johnson",
             lessons=[
-                Lesson(lesson_number=1, title="Data Preprocessing", lesson_link="https://example.com/ds/lesson1"),
-            ]
-        )
+                Lesson(
+                    lesson_number=1,
+                    title="Data Preprocessing",
+                    lesson_link="https://example.com/ds/lesson1",
+                ),
+            ],
+        ),
     ]
     return courses
 
@@ -63,37 +90,37 @@ def mock_course_chunks():
             content="Python is a high-level programming language known for its simplicity and readability. It's widely used in web development, data science, and automation.",
             course_title="Introduction to Python Programming",
             lesson_number=1,
-            chunk_index=0
+            chunk_index=0,
         ),
         CourseChunk(
             content="Variables in Python are used to store data. Python supports various data types including integers, floats, strings, lists, and dictionaries.",
             course_title="Introduction to Python Programming",
             lesson_number=2,
-            chunk_index=1
+            chunk_index=1,
         ),
         CourseChunk(
             content="Control flow statements like if-else conditions and loops allow you to control the execution of your Python programs.",
             course_title="Introduction to Python Programming",
             lesson_number=3,
-            chunk_index=2
+            chunk_index=2,
         ),
         CourseChunk(
             content="Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed.",
             course_title="Machine Learning Fundamentals",
             lesson_number=1,
-            chunk_index=3
+            chunk_index=3,
         ),
         CourseChunk(
             content="Supervised learning is a type of machine learning where the model is trained on labeled data. Common algorithms include linear regression and decision trees.",
             course_title="Machine Learning Fundamentals",
             lesson_number=2,
-            chunk_index=4
+            chunk_index=4,
         ),
         CourseChunk(
             content="Data preprocessing is a crucial step in any data science project. It involves cleaning, transforming, and preparing raw data for analysis.",
             course_title="Advanced Data Science",
             lesson_number=1,
-            chunk_index=5
+            chunk_index=5,
         ),
     ]
     return chunks
@@ -104,20 +131,21 @@ def mock_vector_store(mock_course_data, mock_course_chunks):
     """Create a mock vector store with test data"""
     with tempfile.TemporaryDirectory() as tmpdir:
         store = VectorStore(tmpdir, "all-MiniLM-L6-v2", max_results=5)
-        
+
         # Add mock courses to catalog
         for course in mock_course_data:
             store.add_course_metadata(course)
-        
+
         # Add mock chunks to content
         store.add_course_content(mock_course_chunks)
-        
+
         yield store
 
 
 @pytest.fixture
 def mock_search_results():
     """Create mock search results for testing"""
+
     def _create_results(documents=None, metadata=None, distances=None, error=None):
         if documents is None:
             documents = []
@@ -126,11 +154,9 @@ def mock_search_results():
         if distances is None:
             distances = []
         return SearchResults(
-            documents=documents,
-            metadata=metadata,
-            distances=distances,
-            error=error
+            documents=documents, metadata=metadata, distances=distances, error=error
         )
+
     return _create_results
 
 
@@ -195,11 +221,11 @@ continuous deployment, and automated testing pipelines.
 @pytest.fixture
 def temp_course_file(sample_course_document):
     """Create a temporary course file for testing"""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
         f.write(sample_course_document)
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     os.unlink(temp_path)

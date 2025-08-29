@@ -35,15 +35,50 @@ This is a Course Materials RAG (Retrieval-Augmented Generation) System - a full-
 # Manual start
 cd backend
 uv run uvicorn app:app --reload --port 8000
+
+# Using Makefile
+make run
 ```
 
 ### Dependency Management
 ```bash
 # Install dependencies
 uv sync
+# or
+make install
 
 # Add new dependency
 uv add <package-name>
+```
+
+### Code Quality Tools
+```bash
+# Format code with Black and organize imports with isort
+./scripts/format_code.sh
+# or
+make format
+
+# Run linting checks (flake8)
+make lint
+
+# Run all quality checks (formatting check, import check, lint)
+./scripts/quality_check.sh
+# or
+make check
+
+# Run format, lint, and tests in sequence
+make quality
+
+# Clean up cache and temporary files
+make clean
+```
+
+### Testing
+```bash
+# Run tests
+uv run pytest backend/tests/ -v
+# or
+make test
 ```
 
 ### Environment Setup
@@ -70,6 +105,30 @@ ANTHROPIC_API_KEY=your_api_key_here
 - Creates overlapping chunks for better context preservation
 - Avoids duplicate course imports on startup
 
+## Code Quality Configuration
+
+The project includes essential code quality tools configured in `pyproject.toml`:
+
+### Black Formatter
+- **Line length**: 88 characters (Python community standard)
+- **Target Python version**: 3.13
+- Automatically formats code for consistent style
+
+### isort Import Organizer  
+- **Profile**: black (compatible with Black formatter)
+- **Line length**: 88 characters
+- Organizes imports alphabetically and by category
+
+### flake8 Linter
+- **Max line length**: 88 characters
+- **Ignored errors**: E203 (whitespace before ':'), W503 (line break before binary operator)
+- Excludes test files for more flexible testing code
+
+### Development Workflow
+1. **Before committing**: Run `make quality` to format, lint, and test
+2. **During development**: Use `make format` to auto-format code
+3. **Code review**: Use `make check` to verify formatting and style compliance
+
 ## Important Notes
 
 - The system uses ChromaDB for persistence - data survives restarts
@@ -78,3 +137,4 @@ ANTHROPIC_API_KEY=your_api_key_here
 - API documentation available at `http://localhost:8000/docs`
 - Session management enables multi-turn conversations with context
 - dont run the server using ./run.sh I will start it myself
+- **Code Quality**: Always run quality checks before committing changes
