@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, themeToggle;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,8 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
+    themeToggle = document.getElementById('themeToggle');
     
     setupEventListeners();
+    initializeTheme();
     createNewSession();
     loadCourseStats();
 });
@@ -33,6 +35,19 @@ function setupEventListeners() {
     const newChatButton = document.getElementById('newChatButton');
     if (newChatButton) {
         newChatButton.addEventListener('click', handleNewChat);
+    }
+    
+    // Theme toggle button
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+        
+        // Keyboard navigation
+        themeToggle.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
     }
     
     // Suggested questions
@@ -237,5 +252,33 @@ async function loadCourseStats() {
         if (courseTitles) {
             courseTitles.innerHTML = '<span class="error">Failed to load courses</span>';
         }
+    }
+}
+
+// Theme Functions
+function initializeTheme() {
+    // Check for saved theme preference, default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+}
+
+function setTheme(theme) {
+    // Apply theme to body
+    document.body.setAttribute('data-theme', theme);
+    
+    // Save preference
+    localStorage.setItem('theme', theme);
+    
+    // Update button aria-label for accessibility
+    if (themeToggle) {
+        const isLight = theme === 'light';
+        themeToggle.setAttribute('aria-label', `Switch to ${isLight ? 'dark' : 'light'} theme`);
+        themeToggle.setAttribute('title', `Switch to ${isLight ? 'dark' : 'light'} theme`);
     }
 }
