@@ -26,6 +26,26 @@
     --welcome-border: #2563eb;
 }
 
+/* Light Theme Variables */
+[data-theme="light"] {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --background: #ffffff;
+    --surface: #f8fafc;
+    --surface-hover: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --border-accent: #3b82f6;
+    --user-message: #2563eb;
+    --assistant-message: #f1f5f9;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    --focus-ring: rgba(37, 99, 235, 0.2);
+    --welcome-bg: #eff6ff;
+    --welcome-border: #2563eb;
+}
+
 /* Base Styles */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -36,6 +56,12 @@ body {
     overflow: hidden;
     margin: 0;
     padding: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme transitions for all elements */
+*, *::before, *::after {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Container - Full Screen */
@@ -48,9 +74,15 @@ body {
     padding: 0;
 }
 
-/* Header - Hidden */
+/* Header - Visible with theme toggle */
 header {
-    display: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 header h1 {
@@ -67,6 +99,68 @@ header h1 {
     font-size: 0.95rem;
     color: var(--text-secondary);
     margin-top: 0.5rem;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--border-color);
+    border-radius: 22px;
+    background: var(--background);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    padding: 0;
+    box-shadow: var(--shadow);
+}
+
+.theme-toggle:hover {
+    border-color: var(--primary-color);
+    background: var(--surface-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.theme-toggle:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--focus-ring), var(--shadow);
+}
+
+.theme-toggle:active {
+    transform: translateY(0);
+}
+
+/* Theme Icons */
+.theme-icon {
+    position: absolute;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.theme-icon.sun-icon {
+    opacity: 1;
+    transform: rotate(0deg);
+}
+
+.theme-icon.moon-icon {
+    opacity: 0;
+    transform: rotate(180deg);
+}
+
+/* Light theme icon states */
+[data-theme="light"] .theme-icon.sun-icon {
+    opacity: 0;
+    transform: rotate(180deg);
+}
+
+[data-theme="light"] .theme-icon.moon-icon {
+    opacity: 1;
+    transform: rotate(0deg);
 }
 
 /* Main Content Area with Sidebar */
